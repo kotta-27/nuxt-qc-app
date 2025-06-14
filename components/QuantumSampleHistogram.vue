@@ -35,13 +35,15 @@ const props = defineProps<{
 }>();
 
 const chartData = computed(() => {
-  const sortedKeys = Object.keys(props.histogram).sort(
-    (a, b) => parseInt(a, 2) - parseInt(b, 2)
+  const labels = Object.keys(props.histogram).map((s) =>
+    s.split("").reverse().join("")
   );
-  const labels = sortedKeys.map((s) => s.split("").reverse().join(""));
-  const data = sortedKeys.map((k) => props.histogram[k]);
+  const sortedLabels = labels.sort((a, b) => parseInt(a, 2) - parseInt(b, 2));
+  const data = sortedLabels.map(
+    (k) => props.histogram[k.split("").reverse().join("")]
+  );
   return {
-    labels,
+    labels: sortedLabels,
     datasets: [
       {
         label: "Counts",
