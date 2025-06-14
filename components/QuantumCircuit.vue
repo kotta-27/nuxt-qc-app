@@ -435,13 +435,19 @@ function onDrop(q: number, i: number, event: DragEvent) {
 }
 .eye-toggle-btn {
   background: #eee;
+  border: 1px solid #eee;
   border-radius: 50%;
-  border: none;
   margin-left: 30px;
   cursor: pointer;
   padding: 0;
   vertical-align: middle;
   z-index: 1;
+}
+.eye-toggle-btn:hover {
+  border: 1px solid #1976d2;
+}
+.eye-toggle-btn:active {
+  transform: scale(0.98);
 }
 .eye-toggle-btn svg {
   display: inline-block;

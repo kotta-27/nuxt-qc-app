@@ -15,6 +15,7 @@
       </div>
       <div v-if="showTooltip" class="gate-palette-tooltip-content">
         <div class="gate-palette-tooltip-content-item">
+          量子ゲートをドラッグ&ドロップで追加できます。
           追加したゲートはダブルクリックで削除できます。
         </div>
       </div>

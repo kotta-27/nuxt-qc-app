@@ -16,7 +16,7 @@
           @toggle-qubit-active="toggleQubitActive"
         />
         <div class="btn-row">
-          <button class="reset-btn" @click="resetCircuit">リセット</button>
+          <button class="reset-btn" @click="resetCircuit">回路リセット</button>
         </div>
         <div class="btn-template-container">
           <div class="btn-template-title">テンプレート</div>
@@ -423,9 +423,15 @@ function setHalfAdderTemplate() {
 .calc-btn:hover {
   background: #1565c0;
 }
+.calc-btn:active {
+  transform: scale(0.98);
+}
 .reset-btn:hover {
-  background: #666;
-  border: 2px solid #0f0f0f;
+  background: #ea4848;
+  border: 2px solid #f20000;
+}
+.reset-btn:active {
+  transform: scale(0.98);
 }
 
 .btn-template-container {
@@ -503,5 +509,8 @@ function setHalfAdderTemplate() {
 .measure-btn:hover {
   background: #15a352;
   border: 2px solid #010703;
+}
+.measure-btn:active {
+  transform: scale(0.98);
 }
 </style>
