@@ -18,13 +18,22 @@
         <div class="btn-row">
           <button class="reset-btn" @click="resetCircuit">リセット</button>
         </div>
+        <div class="btn-template-container">
+          <div class="btn-template-title">テンプレート</div>
+          <button class="calc-btn" @click="setFullAdderTemplate">
+            全加算器
+          </button>
+          <button class="calc-btn" @click="setHalfAdderTemplate">
+            半加算器
+          </button>
+        </div>
       </div>
       <div class="right-container">
         <div class="probability-distribution-container">
           <QuantumResultChart :probabilityMap="probabilityMap" />
         </div>
         <div class="sampling-container">
-          <div style="margin: 24px 0 8px 0">
+          <div style="margin: 0 0 8px 0">
             <label
               >ショット数:
               <input
@@ -83,7 +92,11 @@ function toggleQubitActive(q: number) {
 }
 
 export type MultiQubitGate =
-  | { type: "CX" | "CH" | "CZ"; slot: number; target: number }
+  | {
+      type: "CX" | "CH" | "CZ" | "X" | "H" | "Y" | "Z";
+      slot: number;
+      target: number;
+    }
   | { type: "CCX"; slot: number; target: number; controls?: number[] };
 export type CXGate = { type: "CX"; control: number; target: number };
 export type CHGate = { type: "CH"; control: number; target: number };
@@ -93,7 +106,15 @@ export type CCXGate = {
   controls: [number, number];
   target: number;
 };
-export type GateCell = string | null | CXGate | CHGate | CZGate | CCXGate;
+export type InputGate = { type: "input" };
+export type GateCell =
+  | string
+  | null
+  | CXGate
+  | CHGate
+  | CZGate
+  | CCXGate
+  | InputGate;
 
 function createEmptyCircuit(): GateCell[][] {
   return Array.from({ length: NUM_QUBITS }, () => Array(NUM_SLOTS).fill(null));
@@ -153,7 +174,11 @@ function sampleFromProbabilityMap(
   return result;
 }
 
-type PlaceGatePayload = { qubit: number; slot: number; gate: string };
+type PlaceGatePayload = {
+  qubit: number;
+  slot: number;
+  gate: "X" | "H" | "Y" | "Z" | "CX" | "CH" | "CZ" | "CCX";
+};
 type RemoveGatePayload = { qubit: number; slot: number };
 
 const pendingMultiQubitGate = ref<MultiQubitGate | null>(null);
@@ -225,14 +250,23 @@ function selectControlQubit(control: number) {
   pendingMultiQubitGate.value = null;
 }
 
-function removeGate({ qubit, slot }: RemoveGatePayload) {
+function removeGate(
+  payload: RemoveGatePayload | { qubits: number[]; slot: number }
+) {
   const newData = circuitData.value.map((row) => [...row]);
-  newData[qubit][slot] = null;
+  if ("qubits" in payload) {
+    for (const q of payload.qubits) {
+      newData[q][payload.slot] = null;
+    }
+  } else {
+    newData[payload.qubit][payload.slot] = null;
+  }
   circuitData.value = newData;
 }
 
 function resetCircuit() {
   circuitData.value = createEmptyCircuit();
+  activeQubits.value = [0, 1, 2, 3];
   pendingMultiQubitGate.value = null;
 }
 
@@ -295,6 +329,60 @@ function measure() {
     histogram.value = sampleFromProbabilityMap(reducedMap, shots.value);
   }
 }
+
+function setFullAdderTemplate() {
+  resetCircuit();
+  const newData = circuitData.value.map((row) => [...row]);
+  // 入力ビットの背景色を変更
+  newData[0][0] = { type: "input" };
+  newData[1][0] = { type: "input" };
+  newData[2][0] = { type: "input" };
+  // slot2
+  newData[0][2] = { type: "CCX", controls: [0, 1], target: 3 };
+  newData[1][2] = { type: "CCX", controls: [0, 1], target: 3 };
+  newData[3][2] = { type: "CCX", controls: [0, 1], target: 3 };
+  // slot3
+  newData[0][3] = { type: "CX", control: 0, target: 1 };
+  newData[1][3] = { type: "CX", control: 0, target: 1 };
+  // slot4
+  newData[1][4] = { type: "CCX", controls: [1, 2], target: 3 };
+  newData[2][4] = { type: "CCX", controls: [1, 2], target: 3 };
+  newData[3][4] = { type: "CCX", controls: [1, 2], target: 3 };
+  // slot5
+  newData[1][5] = { type: "CX", control: 1, target: 2 };
+  newData[2][5] = { type: "CX", control: 1, target: 2 };
+  circuitData.value = newData;
+  activeQubits.value = [2, 3];
+}
+
+function setHalfAdderTemplate() {
+  resetCircuit();
+  const newData = circuitData.value.map((row) => [...row]);
+  // 入力ビットの背景色を変更
+  newData[0][0] = { type: "input" };
+  newData[1][0] = { type: "input" };
+  // slot3
+  newData[0][3] = {
+    type: "CCX",
+    controls: [0, 1] as [number, number],
+    target: 2,
+  };
+  newData[1][3] = {
+    type: "CCX",
+    controls: [0, 1] as [number, number],
+    target: 2,
+  };
+  newData[2][3] = {
+    type: "CCX",
+    controls: [0, 1] as [number, number],
+    target: 2,
+  };
+  // slot4
+  newData[0][4] = { type: "CX", control: 0, target: 1 };
+  newData[1][4] = { type: "CX", control: 0, target: 1 };
+  circuitData.value = newData;
+  activeQubits.value = [1, 2];
+}
 </script>
 
 <style scoped>
@@ -307,13 +395,15 @@ function measure() {
 }
 .btn-row {
   display: flex;
+  flex-direction: row;
+  justify-content: end;
   gap: 16px;
   margin-bottom: 32px;
 }
 .calc-btn,
 .reset-btn {
-  padding: 8px 24px;
-  font-size: 1.1rem;
+  padding: 8px 10px;
+  font-size: 0.7rem;
   border-radius: 8px;
   border: none;
   background: #1976d2;
@@ -323,12 +413,34 @@ function measure() {
 }
 .reset-btn {
   background: #888;
+  border: 2px solid #888;
+}
+
+.calc-btn {
+  font-size: 0.9rem;
+  width: 150px;
 }
 .calc-btn:hover {
   background: #1565c0;
 }
 .reset-btn:hover {
   background: #666;
+  border: 2px solid #0f0f0f;
+}
+
+.btn-template-container {
+  border: 1.5px solid #888;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+
+.btn-template-title {
+  font-size: 1rem;
+  font-weight: bold;
 }
 
 .title-container {

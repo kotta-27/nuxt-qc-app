@@ -24,6 +24,7 @@
           class="circuit-slot"
           :class="{
             'has-gate': !!gate,
+            'input-bit': typeof gate === 'object' && gate?.type === 'input',
             'control-candidate':
               pendingMultiQubitGate &&
               pendingMultiQubitGate.slot === i &&
@@ -67,6 +68,12 @@
               class="cx-target-x"
               draggable="true"
               @dragstart="onCXDragStart(gate.controls[0], i, $event)"
+              @dblclick="
+                emit('remove-gate', {
+                  qubits: [gate.controls[0], gate.controls[1], gate.target],
+                  slot: i,
+                })
+              "
             >
               X
             </div>
@@ -79,35 +86,62 @@
               class="cx-control"
               draggable="true"
               @dragstart="onCXDragStart(gate.controls[0], i, $event)"
+              @dblclick="
+                emit('remove-gate', {
+                  qubits: [gate.controls[0], gate.controls[1], gate.target],
+                  slot: i,
+                })
+              "
             ></div>
             <div
               v-else-if="gate.type !== 'CCX' && gate.control === q"
               class="cx-control"
               draggable="true"
               @dragstart="onCXDragStart(gate.control, i, $event)"
+              @dblclick="
+                emit('remove-gate', {
+                  qubits: [gate.control, gate.target],
+                  slot: i,
+                })
+              "
             ></div>
             <div
               v-else-if="gate.type !== 'CCX' && gate.target === q"
               class="cx-target-x"
               draggable="true"
               @dragstart="onCXDragStart(gate.control, i, $event)"
+              @dblclick="
+                emit('remove-gate', {
+                  qubits: [gate.control, gate.target],
+                  slot: i,
+                })
+              "
             >
               {{
-                gate.type === "CX"
-                  ? "X"
-                  : gate.type === "CH"
-                  ? "H"
-                  : gate.type === "CZ"
-                  ? "Z"
-                  : "?"
+                (() => {
+                  switch (gate.type as any) {
+                    case "CX":
+                    case "CCX":
+                      return "X";
+                    case "CH":
+                      return "H";
+                    case "CZ":
+                      return "Z";
+                    default:
+                      return "?";
+                  }
+                })()
               }}
             </div>
           </template>
           <div
-            v-else-if="gate"
+            v-else-if="
+              gate && !(typeof gate === 'object' && gate?.type === 'input')
+            "
             class="gate-in-slot"
             draggable="true"
             @dragstart="onGateDragStart(q, i, gate, $event)"
+            @dblclick="emit('remove-gate', { qubit: q, slot: i })"
           >
             {{ gate }}
           </div>
@@ -172,6 +206,7 @@ import type {
   CCXGate,
   GateCell,
   MultiQubitGate,
+  InputGate,
 } from "../pages/index.vue";
 const props = defineProps<{
   circuitData: GateCell[][];
@@ -219,9 +254,16 @@ function cxLineStyle(control: number, target: number) {
   };
 }
 
-function onGateDragStart(q: number, i: number, gate: string, event: DragEvent) {
+function onGateDragStart(
+  q: number,
+  i: number,
+  gate: string | InputGate,
+  event: DragEvent
+) {
   event.dataTransfer!.effectAllowed = "move";
-  event.dataTransfer!.setData("text/plain", gate);
+  if (typeof gate === "string") {
+    event.dataTransfer!.setData("text/plain", gate);
+  }
   event.dataTransfer!.setData(
     "application/x-qc-from",
     JSON.stringify({ fromQubit: q, fromSlot: i })
@@ -404,5 +446,9 @@ function onDrop(q: number, i: number, event: DragEvent) {
 .eye-toggle-btn svg {
   display: inline-block;
   vertical-align: middle;
+}
+.input-bit {
+  background: #baffc8 !important;
+  border: 2px solid #2bdb57 !important;
 }
 </style>

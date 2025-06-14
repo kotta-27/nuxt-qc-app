@@ -1,6 +1,16 @@
 <template>
   <div class="histogram-container">
-    <Bar :data="chartData" :options="chartOptions" />
+    <div class="histogram-header-container">
+      <div class="histogram-title">サンプリング</div>
+      <div class="histogram-tooltip">
+        <img src="/info-icon.svg" alt="info" class="histogram-tooltip-icon" />
+      </div>
+    </div>
+    <Bar
+      :data="chartData"
+      :options="chartOptions"
+      style="width: 80%; max-width: 80%"
+    />
   </div>
 </template>
 
@@ -25,9 +35,11 @@ const props = defineProps<{
 }>();
 
 const chartData = computed(() => {
-  // ビット列を昇順でソート
-  const labels = Object.keys(props.histogram).sort();
-  const data = labels.map((k) => props.histogram[k]);
+  const sortedKeys = Object.keys(props.histogram).sort(
+    (a, b) => parseInt(a, 2) - parseInt(b, 2)
+  );
+  const labels = sortedKeys.map((s) => s.split("").reverse().join(""));
+  const data = sortedKeys.map((k) => props.histogram[k]);
   return {
     labels,
     datasets: [
@@ -44,10 +56,6 @@ const chartOptions = computed(() => ({
   responsive: true,
   plugins: {
     legend: { display: false },
-    title: {
-      display: true,
-      text: `Sampling Result Histogram (${props.shots} shots)`,
-    },
   },
   scales: {
     y: {
@@ -65,5 +73,24 @@ const chartOptions = computed(() => ({
 .histogram-container {
   width: 100%;
   height: 80%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.histogram-header-container {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+.histogram-title {
+  font-size: 1rem;
+  font-weight: bold;
+}
+.histogram-tooltip {
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
 }
 </style>

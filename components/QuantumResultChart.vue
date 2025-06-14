@@ -1,6 +1,27 @@
 <template>
   <div class="chart-container">
-    <Bar :data="chartData" :options="chartOptions" />
+    <div class="chart-header-container">
+      <div class="chart-title">確率分布</div>
+      <div
+        class="chart-tooltip"
+        @mouseover="showTooltip = true"
+        @mouseleave="showTooltip = false"
+      >
+        <img src="/info-icon.svg" alt="info" class="chart-tooltip-icon" />
+      </div>
+      <div v-if="showTooltip" class="chart-tooltip-content">
+        <div class="chart-tooltip-content-item">
+          ビットは
+          <KatexLabel :expr="`q_3 q_2 q_1 q_0`" fontSize="0.8rem" />
+          の順で表記します。
+        </div>
+      </div>
+    </div>
+    <Bar
+      :data="chartData"
+      :options="chartOptions"
+      style="width: 80%; max-width: 80%"
+    />
   </div>
 </template>
 
@@ -23,11 +44,18 @@ const props = defineProps<{
   probabilityMap: { [bitstring: string]: number };
 }>();
 
+const showTooltip = ref(false);
+
 const chartData = computed(() => {
-  const labels = Object.keys(props.probabilityMap).sort();
-  const data = labels.map((k) => props.probabilityMap[k]);
+  const labels = Object.keys(props.probabilityMap).map((s) =>
+    s.split("").reverse().join("")
+  );
+  const sortedLabels = labels.sort((a, b) => parseInt(a, 2) - parseInt(b, 2));
+  const data = sortedLabels.map(
+    (k) => props.probabilityMap[k.split("").reverse().join("")]
+  );
   return {
-    labels,
+    labels: sortedLabels,
     datasets: [
       {
         label: "Probability",
@@ -42,11 +70,6 @@ const chartOptions = {
   responsive: true,
   plugins: {
     legend: { display: false },
-    title: {
-      display: true,
-      text: "確率分布",
-      color: "#000",
-    },
   },
   scales: {
     y: {
@@ -60,7 +83,47 @@ const chartOptions = {
 <style scoped>
 .chart-container {
   width: 100%;
-  height: 80%;
-  background: rgba(255, 255, 255, 0.2);
+  height: 90%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.chart-header-container {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  text-align: center;
+  justify-content: space-between;
+  position: relative;
+}
+.chart-title {
+  font-size: 1rem;
+  font-weight: bold;
+}
+.chart-tooltip {
+  height: 24px;
+  font-weight: bold;
+  cursor: pointer;
+}
+.chart-tooltip-icon {
+  color: #787878;
+  filter: invert(1);
+  margin-left: 10px;
+}
+.chart-tooltip:hover {
+  color: #42a5f5;
+}
+.chart-tooltip-content {
+  position: absolute;
+  top: 0px;
+  left: 100px;
+  width: 230px;
+  font-size: 0.8rem;
+  background: #fff;
+  padding: 5px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.3);
 }
 </style>

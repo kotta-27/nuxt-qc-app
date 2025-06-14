@@ -1,6 +1,24 @@
 <template>
   <div class="gate-palette">
-    <div class="gate-palette-title">量子ゲート</div>
+    <div class="gate-palette-header-container">
+      <div class="gate-palette-title">量子ゲート</div>
+      <div
+        class="gate-palette-tooltip"
+        @mouseover="showTooltip = true"
+        @mouseleave="showTooltip = false"
+      >
+        <img
+          src="/info-icon.svg"
+          alt="info"
+          class="gate-palette-tooltip-icon"
+        />
+      </div>
+      <div v-if="showTooltip" class="gate-palette-tooltip-content">
+        <div class="gate-palette-tooltip-content-item">
+          追加したゲートはダブルクリックで削除できます。
+        </div>
+      </div>
+    </div>
     <div class="gate-palette-content">
       <button
         v-for="gate in gates"
@@ -29,6 +47,8 @@ function onDragStart(gate, event) {
     event.dataTransfer.setData("text/plain", gate);
   }
 }
+
+const showTooltip = ref(false);
 </script>
 
 <style scoped>
@@ -59,6 +79,7 @@ function onDragStart(gate, event) {
   font-size: 0.9rem;
   border: 1px solid #515050;
   background: #f5f5f5;
+  border-radius: 6px;
   cursor: grab;
   transition: background 0.2s;
   display: flex;
@@ -70,7 +91,7 @@ function onDragStart(gate, event) {
   cursor: grabbing;
 }
 .gate-btn:hover {
-  background: #e0e0e0;
+  background: #8d8d8d;
 }
 .cx-drag-ghost {
   display: flex;
@@ -99,5 +120,34 @@ function onDragStart(gate, event) {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+.gate-palette-header-container {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+}
+.gate-palette-tooltip {
+  margin-left: 10px;
+  cursor: pointer;
+}
+.gate-palette-tooltip-icon {
+  width: 24px;
+  height: 24px;
+  color: #787878;
+  filter: invert(1);
+}
+.gate-palette-tooltip-content {
+  position: absolute;
+  top: -10px;
+  left: 130px;
+  width: 300px;
+  background: #fff;
+  font-size: 0.8rem;
+  padding: 5px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.3);
 }
 </style>

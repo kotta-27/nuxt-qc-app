@@ -5,7 +5,10 @@
 <script setup lang="ts">
 import katex from "katex";
 import { computed } from "vue";
-const props = defineProps<{ expr: string }>();
+const props = defineProps<{
+  expr: string;
+  fontSize?: string;
+}>();
 const rendered = computed(() => {
   try {
     return katex.renderToString(props.expr, {
@@ -20,7 +23,7 @@ const rendered = computed(() => {
 
 <style scoped>
 span {
-  font-size: 1.2rem;
+  font-size: v-bind(fontSize);
   font-family: "KaTeX_Main", serif;
   color: #0a0a0a;
 }

@@ -42,6 +42,18 @@ const CZ = [
   [0, 0, 0, -1],
 ];
 
+// 3量子ビットCCXゲート（8x8）
+const CCX = [
+  [1,0,0,0,0,0,0,0],
+  [0,1,0,0,0,0,0,0],
+  [0,0,1,0,0,0,0,0],
+  [0,0,0,1,0,0,0,0],
+  [0,0,0,0,1,0,0,0],
+  [0,0,0,0,0,1,0,0],
+  [0,0,0,0,0,0,0,1],
+  [0,0,0,0,0,0,1,0],
+];
+
 function getGateMatrix(gate: GateCell) {
   if (typeof gate === 'object' && gate !== null && (
     gate.type === 'CX' || gate.type === 'CH' || gate.type === 'CZ')) {
@@ -94,54 +106,125 @@ function indexToBitString(idx: number, numQubits: number): string {
   return idx.toString(2).padStart(numQubits, '0');
 }
 
+// n量子ビットのテンソル積で、任意の位置に多量子ビットゲートを挿入
+function kronNWithGate(numQubits: number, gate: number[][], positions: number[]) {
+  let mats: number[][][] = [];
+  let i = 0;
+  while (i < numQubits) {
+    if (positions.includes(i)) {
+      if (i === positions[0]) {
+        mats.push(gate);
+        i += positions.length;
+      } else {
+        i++;
+      }
+    } else {
+      mats.push(I);
+      i++;
+    }
+  }
+  return mats.reduce((acc, m) => kron(acc, m), [[1]]);
+}
+
+// 任意の位置の2量子ビット制御ゲート（CX, CZ, CH）全体行列を構築
+function makeGeneralControlledGate(numQubits: number, control: number, target: number, baseGate: number[][]) {
+  const dim = 2 ** numQubits;
+  const U = Array.from({ length: dim }, () => Array(dim).fill(0));
+  for (let i = 0; i < dim; i++) {
+    const bits = i.toString(2).padStart(numQubits, '0').split('').map(Number);
+    if (bits[control] === 1) {
+      // ターゲットにbaseGateを作用
+      const flipped = [...bits];
+      // baseGate: 2x2
+      const t = bits[target];
+      for (let k = 0; k < 2; k++) {
+        flipped[target] = k;
+        const j = parseInt(flipped.join(''), 2);
+        U[j][i] = baseGate[k][t];
+      }
+    } else {
+      U[i][i] = 1;
+    }
+  }
+  return U;
+}
+
+// 任意の位置の3量子ビットCCX全体行列
+function makeGeneralCCX(numQubits: number, controls: number[], target: number) {
+  const dim = 2 ** numQubits;
+  const U = Array.from({ length: dim }, () => Array(dim).fill(0));
+  for (let i = 0; i < dim; i++) {
+    const bits = i.toString(2).padStart(numQubits, '0').split('').map(Number);
+    if (bits[controls[0]] === 1 && bits[controls[1]] === 1) {
+      const flipped = [...bits];
+      flipped[target] = 1 - flipped[target];
+      const j = parseInt(flipped.join(''), 2);
+      U[j][i] = 1;
+    } else {
+      U[i][i] = 1;
+    }
+  }
+  return U;
+}
+
 export function simulateQuantumCircuit(circuitData: CircuitData): ProbabilityMap {
   const numQubits = circuitData.length;
   const numSlots = circuitData[0]?.length || 0;
   let state = getInitialState(numQubits);
+  console.log(circuitData);
 
   for (let col = 0; col < numSlots; col++) {
-    // まず2量子ビットゲート（CX,CH,CZ）を探す
-    let twoQubitPairs: {type: string, ctrl: number, tgt: number, mat: number[][]}[] = [];
-    for (let row = 0; row < numQubits - 1; row++) {
-      const cell = circuitData[row][col];
-      const nextCell = circuitData[row + 1][col];
-      if (typeof cell === 'object' && cell !== null &&
-          typeof nextCell === 'object' && nextCell !== null &&
-          cell.type === nextCell.type &&
-          (cell.type === 'CX' || cell.type === 'CH' || cell.type === 'CZ') &&
-          cell.control === row && cell.target === row + 1 &&
-          nextCell.control === row && nextCell.target === row + 1) {
-        let mat = CX;
-        if (cell.type === 'CH') mat = CH;
-        if (cell.type === 'CZ') mat = CZ;
-        twoQubitPairs.push({type: cell.type, ctrl: row, tgt: row + 1, mat});
+    // まずこの列の多量子ビットゲートを全て収集
+    let used = Array(numQubits).fill(false);
+    let gateOps: { mat: number[][], positions: number[] }[] = [];
+    for (let q = 0; q < numQubits; q++) {
+      if (used[q]) continue;
+      const cell = circuitData[q][col];
+      if (typeof cell === 'object' && cell !== null) {
+        if (cell.type === 'CX' || cell.type === 'CH' || cell.type === 'CZ') {
+          const ctrl = cell.control;
+          const tgt = cell.target;
+          if (!used[ctrl] && !used[tgt]) {
+            let baseGate = X;
+            if (cell.type === 'CH') baseGate = H;
+            if (cell.type === 'CZ') baseGate = Z;
+            const U = makeGeneralControlledGate(numQubits, ctrl, tgt, baseGate);
+            gateOps.push({ mat: U, positions: Array.from({length: numQubits}, (_,i)=>i) });
+            used[ctrl] = true;
+            used[tgt] = true;
+          }
+        } else if (cell.type === 'CCX') {
+          const [c1, c2] = cell.controls;
+          const tgt = cell.target;
+          if (!used[c1] && !used[c2] && !used[tgt]) {
+            const U = makeGeneralCCX(numQubits, [c1, c2], tgt);
+            gateOps.push({ mat: U, positions: Array.from({length: numQubits}, (_,i)=>i) });
+            used[c1] = true;
+            used[c2] = true;
+            used[tgt] = true;
+          }
+        }
       }
     }
-    // どのビットに2量子ビットゲートがあるかを記録
-    let skip = Array(numQubits).fill(false);
-    twoQubitPairs.forEach(({ctrl, tgt}) => {
-      skip[ctrl] = true;
-      skip[tgt] = true;
-    });
-
-    // ゲート行列リストを作る
-    let gateMats: number[][][] = [];
-    for (let row = 0; row < numQubits; ) {
-      // 2量子ビットゲート
-      const pair = twoQubitPairs.find(({ctrl}) => ctrl === row);
-      if (pair) {
-        gateMats.push(pair.mat);
-        row += 2;
-        continue;
+    // 1量子ビットゲートやIを残りに
+    for (let q = 0; q < numQubits; q++) {
+      if (!used[q]) {
+        gateOps.push({ mat: getGateMatrix(circuitData[q][col]), positions: [q] });
+        used[q] = true;
       }
-      // 1量子ビットゲート
-      if (!skip[row]) {
-        gateMats.push(getGateMatrix(circuitData[row][col]));
-      }
-      row += 1;
     }
-    // テンソル積で全体ユニタリ行列を構築
-    let U = gateMats.reduce((acc, mat) => kron(acc, mat));
+    // 位置でソート（テンソル積順序を保証）
+    gateOps.sort((a, b) => a.positions[0] - b.positions[0]);
+    // 全体ユニタリを構築
+    let U = [[1]];
+    for (const op of gateOps) {
+      if (op.positions.length === numQubits) {
+        U = op.mat;
+        break;
+      } else {
+        U = kron(U, op.mat);
+      }
+    }
     // 状態ベクトルを更新
     state = matVecMul(U, state);
   }
