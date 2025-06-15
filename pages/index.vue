@@ -1,7 +1,23 @@
 <template>
   <div class="container">
     <div class="title-container">
+      <div class="title-left-content" />
       <div class="title-text">量子回路シミュレータ</div>
+      <div class="title-right-container">
+        <div class="title-right-content">
+          <a
+            href="https://github.com/kotta-27/nuxt-qc-app"
+            target="_blank"
+            class="title-right-content-link"
+          >
+            <img
+              src="/github-logo.png"
+              alt="GitHub"
+              class="title-right-content-icon"
+            />
+          </a>
+        </div>
+      </div>
     </div>
     <div class="content-container">
       <div class="left-container">
@@ -63,6 +79,7 @@
         </div>
       </div>
     </div>
+    <div class="footer-container">© 2025 Kota Mizuno. All rights reserved.</div>
   </div>
 </template>
 
@@ -435,6 +452,7 @@ function setHalfAdderTemplate() {
 }
 
 .btn-template-container {
+  max-height: 100px;
   border: 1.5px solid #888;
   padding: 16px;
   display: flex;
@@ -451,12 +469,37 @@ function setHalfAdderTemplate() {
 
 .title-container {
   display: flex;
-  flex-direction: column;
-  justify-content: center;
+  flex-direction: row;
+  justify-content: space-between;
   align-items: center;
-  height: 10vh;
+  height: 9vh;
   background-color: #1976d2;
   color: #fff;
+}
+
+.title-left-content {
+  width: 10%;
+}
+
+.title-right-container {
+  width: 10%;
+}
+
+.title-right-content {
+  width: 10%;
+}
+
+.title-right-content-icon {
+  width: 24px;
+  height: 24px;
+  color: #fff;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  background-color: #fff;
+  padding: 4px;
+}
+.title-right-content-icon:hover {
+  border: 2px solid #070707;
 }
 
 .title-text {
@@ -467,7 +510,7 @@ function setHalfAdderTemplate() {
 .content-container {
   background-color: rgba(208, 208, 208, 0.5);
   width: 100%;
-  height: 90vh;
+  height: 87vh;
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -481,6 +524,18 @@ function setHalfAdderTemplate() {
 .right-container {
   width: 50%;
   height: 100%;
+}
+
+.footer-container {
+  width: 100%;
+  height: 4vh;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.5);
+  background-color: #363535;
 }
 .probability-distribution-container {
   width: 100%;
