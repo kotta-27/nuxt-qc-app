@@ -9,7 +9,7 @@
     <Bar
       :data="chartData"
       :options="chartOptions"
-      style="width: 80%; max-width: 80%"
+      style="width: 80%; max-width: 80%; height: 90%; max-height: 90%"
     />
   </div>
 </template>
