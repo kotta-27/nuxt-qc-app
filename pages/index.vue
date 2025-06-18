@@ -30,11 +30,19 @@
           @select-control-qubit="selectControlQubit"
           :activeQubits="activeQubits"
           @toggle-qubit-active="toggleQubitActive"
+          :numQubits="numQubits"
+          @add-qubit="addQubitAt"
         />
         <div class="btn-row">
           <button class="reset-btn" @click="resetCircuit">回路リセット</button>
+          <!-- <button class="qubit-btn add" @click="addQubitAt(numQubits)">
+            量子ビット追加
+          </button> -->
+          <button class="qubit-btn remove" @click="removeQubit">
+            量子ビット削除
+          </button>
         </div>
-        <div class="btn-template-container">
+        <!-- <div class="btn-template-container">
           <div class="btn-template-title">テンプレート</div>
           <button class="calc-btn" @click="setFullAdderTemplate">
             全加算器
@@ -42,7 +50,7 @@
           <button class="calc-btn" @click="setHalfAdderTemplate">
             半加算器
           </button>
-        </div>
+        </div> -->
       </div>
       <div class="right-container">
         <div class="probability-distribution-container">
@@ -92,12 +100,14 @@ import QuantumSampleHistogram from "~/components/QuantumSampleHistogram.vue";
 import { simulateQuantumCircuit } from "~/utils/quantumSimulator";
 import type { ProbabilityMap } from "~/utils/quantumSimulator";
 
-const NUM_QUBITS = 4;
-const NUM_SLOTS = 8;
+const NUM_SLOTS = 10;
+
+// 量子ビット数を動的に変更可能に
+const numQubits = ref(4);
 
 // アクティブなqubitインデックス配列
 const activeQubits = ref<number[]>(
-  Array.from({ length: NUM_QUBITS }, (_, i) => i)
+  Array.from({ length: numQubits.value }, (_, i) => i)
 );
 
 function toggleQubitActive(q: number) {
@@ -106,6 +116,31 @@ function toggleQubitActive(q: number) {
   } else {
     activeQubits.value = [...activeQubits.value, q].sort((a, b) => a - b);
   }
+}
+
+// 量子ビットを指定した位置に追加する関数
+function addQubitAt(position: number) {
+  if (numQubits.value >= 8) return; // 最大8量子ビットまで
+  numQubits.value++;
+  // 新しい量子ビットをアクティブに追加
+  activeQubits.value = [...activeQubits.value, numQubits.value - 1].sort(
+    (a, b) => a - b
+  );
+  // 回路データを更新
+  const newData = circuitData.value.map((row) => [...row]);
+  newData.splice(position, 0, Array(NUM_SLOTS).fill(null));
+  circuitData.value = newData;
+}
+
+// 量子ビットを削除する関数
+function removeQubit() {
+  if (numQubits.value <= 1) return; // 最低1つの量子ビットは必要
+  numQubits.value--;
+  // 削除された量子ビットをアクティブから除外
+  activeQubits.value = activeQubits.value.filter((q) => q < numQubits.value);
+  // 回路データを更新
+  const newData = circuitData.value.slice(0, -1);
+  circuitData.value = newData;
 }
 
 export type MultiQubitGate =
@@ -134,7 +169,9 @@ export type GateCell =
   | InputGate;
 
 function createEmptyCircuit(): GateCell[][] {
-  return Array.from({ length: NUM_QUBITS }, () => Array(NUM_SLOTS).fill(null));
+  return Array.from({ length: numQubits.value }, () =>
+    Array(NUM_SLOTS).fill(null)
+  );
 }
 
 const circuitData = ref<GateCell[][]>(createEmptyCircuit());
@@ -283,7 +320,7 @@ function removeGate(
 
 function resetCircuit() {
   circuitData.value = createEmptyCircuit();
-  activeQubits.value = [0, 1, 2, 3];
+  activeQubits.value = Array.from({ length: numQubits.value }, (_, i) => i);
   pendingMultiQubitGate.value = null;
 }
 
@@ -566,6 +603,39 @@ function setHalfAdderTemplate() {
   border: 2px solid #010703;
 }
 .measure-btn:active {
+  transform: scale(0.98);
+}
+.qubit-btn {
+  padding: 8px 10px;
+  font-size: 0.7rem;
+  border-radius: 8px;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.qubit-btn.add {
+  background: #4caf50;
+  border: 2px solid #4caf50;
+}
+
+.qubit-btn.remove {
+  background: #f44336;
+  border: 2px solid #f44336;
+}
+
+.qubit-btn.add:hover {
+  background: #388e3c;
+  border: 2px solid #388e3c;
+}
+
+.qubit-btn.remove:hover {
+  background: #d32f2f;
+  border: 2px solid #d32f2f;
+}
+
+.qubit-btn:active {
   transform: scale(0.98);
 }
 </style>

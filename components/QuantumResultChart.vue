@@ -12,7 +12,7 @@
       <div v-if="showTooltip" class="chart-tooltip-content">
         <div class="chart-tooltip-content-item">
           ビットは
-          <KatexLabel :expr="`q_3 q_2 q_1 q_0`" fontSize="0.8rem" />
+          <KatexLabel :expr="`q_n q_{n-1} ... q_1 q_0`" fontSize="0.8rem" />
           の順で表記します。
         </div>
       </div>
